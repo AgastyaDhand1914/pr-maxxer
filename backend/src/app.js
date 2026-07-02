@@ -4,7 +4,12 @@ const cors = require('cors');
 const session = require('express-session');
 const pgSession = require('connect-pg-simple')(session);
 const pool = require('./db/client');
+
 const authRoutes = require('./routes/auth');
+const reposRoutes = require('./routes/repos');
+const reviewsRoutes = require('./routes/reviews');
+const { getGithubRepos } = require('./controllers/repos');
+const requireAuth = require('./middleware/requireAuth');
 
 if (!process.env.FRONTEND_URL) {
     throw new Error("FRONTEND_URL is not set in the environment");
@@ -50,6 +55,10 @@ app.use(session({
 //routes
 
 app.use('/auth', authRoutes);
+app.use('/api/repos', reposRoutes);
+app.use('/api/reviews', reviewsRoutes);
+app.use('/api/github/repos', requireAuth, getGithubRepos);
+
 app.use('/health', (req, res) => res.json({ message: "API is healthy" }));
 
 

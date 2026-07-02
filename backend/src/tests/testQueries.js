@@ -1,5 +1,5 @@
 require('dotenv').config({ path: '../../.env' });
-const pool = require('./client');
+const pool = require('../db/client');
 const {
     createUser,
     findUserByGithubId,
@@ -11,7 +11,7 @@ const {
     getReviewsByUserId,
     getReviewById,
     getLatestReviewForPR
-} = require('./queries');
+} = require('../db/queries');
 
 // ─── Test Runner ────────────────────────────────────────────────────────────
 
