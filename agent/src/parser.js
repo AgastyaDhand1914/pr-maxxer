@@ -29,9 +29,37 @@ function validateComment(comment, validFilenames) {
 }
 
 
+//validate line numbers against actual diff lines
+function buildValidLineMap(reviewableFiles) {
+    const validLines = {};
+    for (const file of reviewableFiles) {
+        validLines[file.filename] = new Set();
+        let lineNum = 0;
+
+        for (const line of file.patch.split('\n')) {
+            if (line.startsWith('@@')) {
+                const match = line.match(/\+(\d+)/);
+                if (match) {
+                    lineNum = parseInt(match[1], 10) - 1;
+                }
+            }
+            else if (line.startsWith('-')) continue;
+            else {
+                lineNum++;
+                if (line.startsWith('+')) {
+                    validLines[file.filename].add(lineNum);
+                }
+            }
+        }
+    }
+
+    return validLines;
+}
+
+
 //main parser: takes raw gemini text and list of valid filenames from the diff
 //returns cleaned review object or null if unparseable
-function parseReviewResponse(rawText, validFilenames) {
+function parseReviewResponse(rawText, reviewableFiles) {
     if (!rawText || typeof rawText !== "string") {
         console.error("Parser: received empty or non-string response");
         return null;
@@ -65,10 +93,31 @@ function parseReviewResponse(rawText, validFilenames) {
         parsed.comments = [];
     }
 
-    //filter out invalid comments: drop rather than crash
-    const validComments = parsed.comments.filter(c => validateComment(c, validFilenames));
-    const droppedCount = parsed.comments.length - validComments.length;
+    const validFilenames = reviewableFiles.map(f => f.filename);
+    const validLineMap = buildValidLineMap(reviewableFiles);
 
+    //filter out invalid comments: drop rather than crash
+    const validComments = parsed.comments.filter(c => {
+        if (!validateComment(c, validFilenames)) return false;
+
+        const validLinesForFile = validLineMap[c.file];
+        if (validLinesForFile && !validLinesForFile.has(c.line)) {
+            const lines = Array.from(validLinesForFile);
+            if (lines.length === 0) {
+                console.warn(`Parser: no valid lines for ${c.file} — dropping comment`);
+                return false;
+            }
+            const closest = lines.reduce((prev, curr) =>
+                Math.abs(curr - c.line) < Math.abs(prev - c.line) ? curr : prev
+            );
+            console.warn(`Parser: snapping line ${c.line} to nearest valid line ${closest} in ${c.file}`);
+            c.line = closest;
+        }
+
+        return true;
+    });
+
+    const droppedCount = parsed.comments.length - validComments.length;
     if (droppedCount > 0) {
         console.warn(`Parser: dropped ${droppedCount} invalid comment(s)`);
     }

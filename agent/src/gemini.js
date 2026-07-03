@@ -57,9 +57,23 @@ function buildReviewPrompt(pr, context, diff, repoConfig = {}) {
         : "No local imports found.";
 
     //build diff section: only changed files
-    const diffSection = reviewableFiles.map(f =>
-        `--- ${f.filename} ---\n${f.patch}`
-    ).join("\n\n");
+    // annotate the diff with line numbers in the prompt
+    const diffSection = reviewableFiles.map(f => {
+        let lineNum = 0;
+        const numberedPatch = f.patch.split('\n').map(line => {
+            if (line.startsWith('@@')) {
+                // Extract starting line number from hunk header e.g. @@ -1,3 +4,7 @@
+                const match = line.match(/\+(\d+)/);
+                if (match) lineNum = parseInt(match[1], 10) - 1;
+                return line;
+            }
+            if (line.startsWith('-')) return line; // removed line, no number increment
+            lineNum++;
+            if (line.startsWith('+')) return `${lineNum}: ${line}`; // added line with number
+            return `${lineNum}: ${line}`; // context line with number
+        }).join('\n');
+        return `--- ${f.filename} ---\n${numberedPatch}`;
+    }).join('\n\n');
 
     const customInstructions = repoConfig.custom_instructions
         ? `\nCUSTOM INSTRUCTIONS FROM REPO OWNER:\n${repoConfig.custom_instructions}\n`

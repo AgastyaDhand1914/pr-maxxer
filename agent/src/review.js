@@ -113,7 +113,7 @@ async function runReviewPipeline(pr, diffFiles, repoConfig) {
             const pr_with_commits = { ...pr, commitMessages };
             const reviewPrompt = buildReviewPrompt(pr_with_commits, scopedContext, highMediumFiles, repoConfig);
             const reviewRaw = await callGeminiWithRetry(reviewPrompt);
-            reviewResult = parseReviewResponse(reviewRaw, validFilenames);
+            reviewResult = parseReviewResponse(reviewRaw, scopedContext.reviewableFiles);
 
             if (reviewResult && lowRiskFiles.length > 0) {
                 reviewResult.summary += `\n\n**Triage disclosure:** This PR contains ${diffFiles.length} changed files. The above review covers ${highMediumFiles.length} high/medium risk files. ${lowRiskFiles.length} low-risk files (${lowRiskFiles.map(f => f.filename).join(', ')}) were summarised by triage without inline review.`;
@@ -126,7 +126,7 @@ async function runReviewPipeline(pr, diffFiles, repoConfig) {
         const pr_with_commits = { ...pr, commitMessages };
         const reviewPrompt = buildReviewPrompt(pr_with_commits, context, diffFiles, repoConfig);
         const reviewRaw = await callGeminiWithRetry(reviewPrompt);
-        reviewResult = parseReviewResponse(reviewRaw, validFilenames);
+        reviewResult = parseReviewResponse(reviewRaw, context.reviewableFiles);
     }
 
     return reviewResult;
