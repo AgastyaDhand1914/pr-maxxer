@@ -174,7 +174,7 @@ async function getReviewsByUserId(userId, page = 1, limit = 20, repoId = null) {
         params.push(repoId);
     }
 
-    queryStr += ` ORDER BY r.reviewed_at DESC LIMIT ${params.length + 1} OFFSET ${params.length + 2}`;
+    queryStr += ` ORDER BY r.reviewed_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
     params.push(limit, offset);
 
     const { rows } = await pool.query(queryStr, params);
