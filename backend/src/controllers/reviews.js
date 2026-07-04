@@ -94,6 +94,7 @@ const getLatestReview = async (req, res) => {
 const getAllReviews = async (req, res) => {
     const rawPage = req.query.page !== undefined ? parseInt(req.query.page, 10) : 1;
     const rawLimit = req.query.limit !== undefined ? parseInt(req.query.limit, 10) : 20;
+    const repoId = req.query.repoId || null;
 
     if (isNaN(rawPage) || rawPage < 1) {
         return res.status(400).json({ error: "page must be a non-zero positive integer" });
@@ -106,7 +107,7 @@ const getAllReviews = async (req, res) => {
     const limit = rawLimit;
 
     try {
-        const reviews = await getReviewsByUserId(req.session.userId, page, limit);
+        const reviews = await getReviewsByUserId(req.session.userId, page, limit, repoId);
         res.json(reviews);
     }
     catch (err) {
