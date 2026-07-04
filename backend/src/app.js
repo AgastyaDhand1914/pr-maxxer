@@ -24,6 +24,7 @@ if (!process.env.PORT) {
 
 const app = express();
 
+app.set('trust proxy', 1); // Trust the reverse proxy (like Render's load balancer) so secure cookies are sent
 
 //middlewares
 
@@ -47,6 +48,7 @@ app.use(session({
     cookie: {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",    //set to true in production (HTTPS only)
+        sameSite: process.env.NODE_ENV === "production" ? 'none' : 'lax', // 'none' required for cross-site cookies
         maxAge: 7 * 24 * 60 * 60 * 1000    //7 days
     }
 }));
