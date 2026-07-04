@@ -106,7 +106,7 @@ async function postReview(owner, repo, prNumber, commitSha, reviewState, body, c
         body: `**[${c.severity.toUpperCase()}]** ${c.comment}`
     }));
 
-    async function attempt(event) {
+    async function attempt(event, inlineComments) {
         const { data } = await octokit.pulls.createReview({
             owner,
             repo,
@@ -114,21 +114,36 @@ async function postReview(owner, repo, prNumber, commitSha, reviewState, body, c
             commit_id: commitSha,
             body,
             event,
-            comments: githubComments
+            comments: inlineComments
         });
         return data.id;
     }
 
     try {
-        return await attempt(reviewState);
+        return await attempt(reviewState, githubComments);
     }
     catch (err) {
         console.log("postReview error status:", err.status, "reviewState:", reviewState);
 
         if (err.status === 422 && reviewState === "REQUEST_CHANGES") {
             console.warn("Cannot request changes on own PR, falling back to COMMENT");
-            return await attempt("COMMENT");
+            try {
+                return await attempt("COMMENT", githubComments);
+            }
+            catch (fallbackErr) {
+                if (fallbackErr.status === 422) {
+                    console.warn("Line resolution failed, retrying with no inline comments");
+                    return await attempt("COMMENT", []);
+                }
+                throw fallbackErr;
+            }
         }
+
+        if (err.status === 422) {
+            console.warn("Line resolution failed, retrying with no inline comments");
+            return await attempt(reviewState, []);
+        }
+
         throw err;
     }
 }
