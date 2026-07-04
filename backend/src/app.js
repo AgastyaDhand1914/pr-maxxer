@@ -46,7 +46,7 @@ app.use(session({
     //otherwise express saves a session record for every single visitor even before logging in leading to silent traffic filling the db
     cookie: {
         httpOnly: true,
-        secure: false,    //set to true in production (HTTPS only)
+        secure: process.env.NODE_ENV === "production",    //set to true in production (HTTPS only)
         maxAge: 7 * 24 * 60 * 60 * 1000    //7 days
     }
 }));
