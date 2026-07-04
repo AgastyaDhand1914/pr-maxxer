@@ -137,6 +137,12 @@ async function runReviewPipeline(pr, diffFiles, repoConfig) {
 async function main() {
     console.log(`Starting PR review for event: ${eventName}, PR: #${prNumber}, repository: ${owner}/${repo}`);
 
+    console.log("All env vars:", {
+        GITHUB_EVENT_NAME: process.env.GITHUB_EVENT_NAME,
+        PR_NUMBER: process.env.PR_NUMBER,
+        REPO: process.env.REPO
+    });
+
     try {
         //fetch repo config from backend
         const repoConfig = await fetchRepoConfig();
