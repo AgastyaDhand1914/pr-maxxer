@@ -66,13 +66,20 @@ async function createRepo({ userId, repoFullName, backendToken }) {
 }
 
 //return all connected repos belonging to a user
+//is_active is true only if at least one review has been saved for that repo
 async function getReposByUserId(userId) {
     if (!userId) {
         throw new Error('getReposByUserId: userId is required');
     }
 
     const { rows } = await pool.query(
-        `SELECT * FROM repos WHERE user_id = $1 ORDER BY created_at DESC`,
+        `SELECT repos.*,
+                (COUNT(reviews.id) > 0) AS is_active
+         FROM repos
+         LEFT JOIN reviews ON reviews.repo_id = repos.id
+         WHERE repos.user_id = $1
+         GROUP BY repos.id
+         ORDER BY repos.created_at DESC`,
         [userId]
     );
 
