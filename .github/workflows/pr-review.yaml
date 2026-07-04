@@ -32,4 +32,4 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           REPO: ${{ github.repository }}
-          GITHUB_EVENT_NAME: ${{ github.event_name }
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
