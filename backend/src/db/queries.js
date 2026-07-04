@@ -163,18 +163,18 @@ async function getReviewsByUserId(userId, page = 1, limit = 20, repoId = null) {
 
     const offset = (page - 1) * limit;
 
-    let queryStr = \`SELECT r.*, repos.repo_full_name
+    let queryStr = `SELECT r.*, repos.repo_full_name
      FROM reviews r
      JOIN repos ON r.repo_id = repos.id
-     WHERE repos.user_id = $1\`;
+     WHERE repos.user_id = $1`;
     const params = [userId];
 
     if (repoId) {
-        queryStr += \` AND r.repo_id = $2\`;
+        queryStr += ` AND r.repo_id = $2`;
         params.push(repoId);
     }
 
-    queryStr += \` ORDER BY r.reviewed_at DESC LIMIT $\${params.length + 1} OFFSET $\${params.length + 2}\`;
+    queryStr += ` ORDER BY r.reviewed_at DESC LIMIT ${params.length + 1} OFFSET ${params.length + 2}`;
     params.push(limit, offset);
 
     const { rows } = await pool.query(queryStr, params);
