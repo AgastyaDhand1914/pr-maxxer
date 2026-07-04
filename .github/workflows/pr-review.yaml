@@ -1,0 +1,35 @@
+name: AI PR Review
+
+on:
+  pull_request_target:
+    types: [opened, synchronize]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: AgastyaDhand1914/pr-maxxer
+          ref: main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: agent/
+
+      - name: Run PR review
+        run: node src/review.js
+        working-directory: agent/
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}    #user must add these for a repository under Settings->Secrets and Variables->Actions
+          PR_REVIEW_BACKEND_TOKEN: ${{ secrets.PR_REVIEW_BACKEND_TOKEN }}    #user must add these for a repository under Settings->Secrets and Variables->Actions
+          BACKEND_URL: https://pr-maxxer-backend.onrender.com
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          REPO: ${{ github.repository }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }
