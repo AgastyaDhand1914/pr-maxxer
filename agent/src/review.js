@@ -6,7 +6,7 @@ const { isLargePR, buildTriagePrompt, buildReviewPrompt, callGeminiWithRetry } =
 const { parseReviewResponse, parseTriageResponse } = require('./parser');
 
 
-const REQUIRED_ENV = ['GITHUB_TOKEN', 'GEMINI_API_KEY', 'PR_REVIEW_BACKEND_TOKEN', 'BACKEND_URL', 'PR_NUMBER', 'PR_HEAD_SHA', 'REPO', 'GITHUB_EVENT_NAME'];
+const REQUIRED_ENV = ['GITHUB_TOKEN', 'GEMINI_API_KEY', 'PR_REVIEW_BACKEND_TOKEN', 'BACKEND_URL', 'PR_NUMBER', 'PR_HEAD_SHA', 'REPO', 'PR_ACTION'];
 
 for (const key of REQUIRED_ENV) {
     if (!process.env[key]) throw new Error(`${key} is not set in environment`);
@@ -15,7 +15,7 @@ for (const key of REQUIRED_ENV) {
 const [owner, repo] = process.env.REPO.split('/');
 const prNumber = parseInt(process.env.PR_NUMBER, 10);
 const headSha = process.env.PR_HEAD_SHA;
-const eventName = process.env.GITHUB_EVENT_NAME;
+const eventName = process.env.PR_ACTION;
 const backendUrl = process.env.BACKEND_URL;
 const backendToken = process.env.PR_REVIEW_BACKEND_TOKEN;
 
