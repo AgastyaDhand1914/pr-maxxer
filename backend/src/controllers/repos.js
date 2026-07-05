@@ -1,4 +1,4 @@
-const { createRepo, getReposByUserId, updateRepoConfig } = require('../db/queries');
+const { createRepo, getReposByUserId, updateRepoConfig, regenerateRepoToken } = require('../db/queries');
 const { randomUUID } = require('crypto');
 const pool = require('../db/client');
 
@@ -50,6 +50,33 @@ const connectRepo = async (req, res) => {
     }
     catch (err) {
         console.error("POST /api/repos error:", err);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+
+//regenerate the backend token for a pending (not yet active) repo
+//old token is immediately invalidated, the new one must be saved and set as a GitHub secret
+const regenerateToken = async (req, res) => {
+    const { repoId } = req.params;
+
+    if (!UUID_REGEX.test(repoId)) {
+        return res.status(400).json({ error: "Invalid repoId format" });
+    }
+
+    try {
+        const newToken = randomUUID();
+        const updated = await regenerateRepoToken(repoId, req.session.userId, newToken);
+
+        if (!updated) {
+            return res.status(404).json({ error: "Repository not found or access denied" });
+        }
+
+        //return new token here and only here
+        res.json({ repo_id: updated.id, repo_full_name: updated.repo_full_name, backend_token: newToken });
+    }
+    catch (err) {
+        console.error("POST /api/repos/:repoId/regenerate-token error:", err);
         res.status(500).json({ error: "Internal server error" });
     }
 };
@@ -152,4 +179,4 @@ const getGithubRepos = async (req, res) => {
     }
 };
 
-module.exports = { getUserRepos, connectRepo, updateConfig, getRepoConfig, getGithubRepos };
+module.exports = { getUserRepos, connectRepo, updateConfig, getRepoConfig, getGithubRepos, regenerateToken };

@@ -129,6 +129,26 @@ async function updateRepoConfig(repoId, userId, config) {
 }
 
 
+//replace the backend_token for a repo, only allowed if it belongs to the user (IDOR protected)
+//returns the new plain-text token so it can be shown once to the user
+//old token is immediately invalidated on update
+async function regenerateRepoToken(repoId, userId, newToken) {
+    if (!repoId) throw new Error('regenerateRepoToken: repoId is required');
+    if (!userId) throw new Error('regenerateRepoToken: userId is required');
+    if (!newToken) throw new Error('regenerateRepoToken: newToken is required');
+
+    const { rows } = await pool.query(
+        `UPDATE repos SET backend_token = $1
+         WHERE id = $2 AND user_id = $3
+         RETURNING id, repo_full_name`,
+        [newToken, repoId, userId]
+    );
+
+    if (rows.length === 0) return null;    //repo not found or not owned by user
+    return rows[0];
+}
+
+
 //called by the agent script at the end of every review, after the gitHub review is posted and 
 //we have the github review id back
 async function createReview({ repoId, prNumber, prTitle, prAuthor, prUrl, reviewState, summary, comments, commitSha, githubReviewId }) {
@@ -247,6 +267,7 @@ module.exports = {
     getReposByUserId,
     getRepoByToken,
     updateRepoConfig,
+    regenerateRepoToken,
     createReview,
     getReviewsByUserId,
     getReviewById,
