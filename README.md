@@ -1,6 +1,6 @@
 # pr-maxxer
 
-AI-powered pull request review agent for GitHub repositories. When a developer opens a pull request on a connected repository, an AI agent automatically analyzes the code changes and posts inline review comments directly on the PR within 60 seconds.
+AI-powered pull request review agent for GitHub repositories. When a developer opens a pull request on a connected repository, an agent automatically analyzes the code changes and posts inline review comments directly on the PR.
 
 ---
 
@@ -23,61 +23,87 @@ AI-powered pull request review agent for GitHub repositories. When a developer o
 | Database | PostgreSQL via Neon |
 | Authentication | GitHub OAuth |
 | Sessions | express-session + connect-pg-simple |
-| AI | Gemini Flash (Google AI Studio) |
+| AI | Gemini (Google AI Studio) |
 | GitHub integration | GitHub Actions (pull_request_target) |
 | GitHub API client | @octokit/rest v20 |
 
 ---
 
 ## Project Structure
-
 ```
 pr-maxxer/
+├── .gitignore
 ├── .github/
 │   └── workflows/
 │       └── pr-review.yaml
-├── frontend/
-│   ├── src/
-│   │   ├── pages/
-│   │   │   ├── Landing.jsx
-│   │   │   ├── Dashboard.jsx
-│   │   │   ├── ReviewDetail.jsx
-│   │   │   └── Settings.jsx
-│   │   ├── components/
-│   │   │   ├── NavBar.jsx
-│   │   │   ├── ReviewRow.jsx
-│   │   │   ├── CommentBlock.jsx
-│   │   │   ├── SeverityBadge.jsx
-│   │   │   ├── Pagination.jsx
-│   │   │   └── TokenModal.jsx
-│   │   ├── api.js
-│   │   └── App.jsx
-│   ├── vercel.json
-│   └── .env.example
+├── agent/
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── .gitignore
+│   ├── .env.example
+│   └── src/
+│       ├── context.js
+│       ├── gemini.js
+│       ├── github.js
+│       ├── parser.js
+│       └── review.js
 ├── backend/
-│   ├── src/
-│   │   ├── routes/
-│   │   ├── controllers/
-│   │   ├── middleware/
-│   │   ├── db/
-│   │   │   ├── schema.sql
-│   │   │   ├── queries.js
-│   │   │   └── client.js
-│   │   └── app.js
-│   └── .env.example
-└── agent/
-    ├── src/
-    │   ├── review.js
-    │   ├── github.js
-    │   ├── context.js
-    │   ├── gemini.js
-    │   └── parser.js
-    └── .env.example
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── .gitignore
+│   ├── .env.example
+│   ├── render.yaml
+│   └── src/
+│       ├── app.js
+│       ├── controllers/
+│       │   ├── auth.js
+│       │   ├── repos.js
+│       │   └── reviews.js
+│       ├── db/
+│       │   ├── client.js
+│       │   ├── queries.js
+│       │   └── schema.sql
+│       ├── middleware/
+│       │   ├── rateLimiter.js
+│       │   ├── requireAuth.js
+│       │   └── requireToken.js
+│       ├── routes/
+│       │   ├── auth.js
+│       │   ├── repos.js
+│       │   └── reviews.js
+│       └── tests/
+│           ├── testQueries.js
+│           └── testAPI.js
+├── frontend/
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── .gitignore
+│   ├── .env.example
+│   ├── index.html
+│   └── src/
+│       ├── main.jsx
+│       ├── App.jsx
+│       ├── api.js
+│       ├── index.css
+│       ├── components/
+│       │   ├── NavBar.jsx
+│       │   ├── ReviewRow.jsx
+│       │   ├── CommentBlock.jsx
+│       │   ├── SeverityBadge.jsx
+│       │   ├── Pagination.jsx
+│       │   └── TokenModal.jsx
+│       └── pages/
+│           ├── Landing.jsx
+│           ├── Dashboard.jsx
+│           ├── ReviewDetail.jsx
+│           ├── ConnectRepo.jsx
+│           └── Configuration.jsx
+└── README.md
 ```
 
 ---
 
-## Local Development
+### Local Development
 
 ### Prerequisites
 
@@ -99,7 +125,9 @@ http://localhost:4000/auth/github/callback
 
 ### Environment Variables
 
-**backend/.env**
+Place per-service env files in `backend/.env`, `frontend/.env`, and `agent/.env`.
+
+backend/.env (example)
 ```
 DATABASE_URL=your_neon_direct_connection_string
 GITHUB_CLIENT_ID=your_oauth_client_id
@@ -110,24 +138,24 @@ PORT=4000
 NODE_ENV=development
 ```
 
-**frontend/.env**
+frontend/.env (example)
 ```
 VITE_BACKEND_URL=http://localhost:4000
 ```
 
-**agent/.env**
+agent/.env (example)
 ```
 GEMINI_API_KEY=your_gemini_api_key
-PR_REVIEW_BACKEND_TOKEN=token_from_connecting_a_repo_in_the_app
+PR_REVIEW_BACKEND_TOKEN=one-time-backend-token-generated-when-connecting-a-repo
 BACKEND_URL=http://localhost:4000
-GITHUB_TOKEN=github_pat_with_repo_scope
+GITHUB_TOKEN=github_pat_with_repo_scope   # only for local testing
 PR_NUMBER=1
 PR_HEAD_SHA=head_commit_sha_of_the_pr
 REPO=owner/repo-name
 PR_ACTION=opened
 ```
 
-`PR_REVIEW_BACKEND_TOKEN` is generated by the app when you connect a repo in Settings. `GITHUB_TOKEN` only needed for local testing — GitHub Actions provides this automatically in production.
+`PR_REVIEW_BACKEND_TOKEN` is returned once when you connect a repository in the app and must be saved by the operator. In production GitHub Actions provide the `GITHUB_TOKEN` automatically.
 
 ### Running locally
 
@@ -138,18 +166,18 @@ cd backend && npm install && npm run dev
 # Frontend (separate terminal)
 cd frontend && npm install && npm run dev
 
-# Agent (against a real GitHub PR)
+# Agent (to run the review agent locally)
 cd agent && npm install && node src/review.js
 ```
 
 ### Test suites
 
 ```bash
-# Database query tests (63 cases) — backend server not required
-cd backend && node src/db/test-queries.js
+# Database query tests — backend server not required
+cd backend && node src/tests/testQueries.js
 
-# API endpoint tests (65 cases) — requires backend running on port 4000
-cd backend && node src/tests/api-test.js
+# API endpoint tests — requires backend running on port 4000
+cd backend && node src/tests/testAPI.js
 ```
 
 ---
@@ -192,18 +220,14 @@ After deployment, copy the Vercel URL and update `FRONTEND_URL` on Render.
 
 ## Connecting a Repository
 
-Once deployed, connecting a repo takes approximately 10 minutes.
+To connect a repository in production:
 
 1. Sign into pr-maxxer and go to Settings
-2. Find the repository in your GitHub repos list and click Connect
-3. Copy the backend token shown in the modal — it is shown only once
-4. In your GitHub repository, create `.github/workflows/pr-review.yaml` with the YAML shown in the modal
-5. Go to your repo Settings → Secrets and variables → Actions and add two secrets:
-   - `GEMINI_API_KEY` — free key from aistudio.google.com
-   - `PR_REVIEW_BACKEND_TOKEN` — the token from step 3
-6. Open a pull request — the AI review will appear within 60 seconds
+2. Choose a repository from your GitHub repos list and click Connect
+3. Copy the one-time backend token shown in the modal — store it securely
+4. Add the token and `GEMINI_API_KEY` as GitHub Actions secrets in your repository (`PR_REVIEW_BACKEND_TOKEN`, `GEMINI_API_KEY`) and add the provided workflow to `.github/workflows/pr-review.yaml`
 
-Every pull request opened on that repository from this point forward is reviewed automatically.
+After the workflow and secrets are configured, the agent will be able to post reviews for new pull requests on that repository.
 
 ---
 
@@ -222,19 +246,20 @@ Every pull request opened on that repository from this point forward is reviewed
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| GET | `/api/repos` | Session | List connected repos |
-| POST | `/api/repos` | Session | Connect a repo, generate token |
-| PUT | `/api/repos/:repoId/config` | Session | Update reviewer config |
-| GET | `/api/repos/config` | Token | Fetch config (called by agent) |
-| GET | `/api/github/repos` | Session | List user's GitHub repos |
+| GET | `/api/repos` | Session | List connected repos for the logged-in user |
+| POST | `/api/repos` | Session | Connect a repo and return a one-time backend token |
+| POST | `/api/repos/:repoId/regenerate-token` | Session | Regenerate a backend token for a pending repo (returns new token once) |
+| PUT | `/api/repos/:repoId/config` | Session | Update reviewer config for a connected repo |
+| GET | `/api/repos/config` | Token | Fetch repo config (used by the agent via backend token) |
+| GET | `/api/github/repos` | Session | Proxy to GitHub: list repos visible to the logged-in user |
 
 ### Reviews
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| POST | `/api/reviews` | Token | Save a review (called by agent) |
-| GET | `/api/reviews/latest` | Token | Get latest review for a PR (called by agent) |
-| GET | `/api/reviews` | Session | Paginated reviews for dashboard |
+| POST | `/api/reviews` | Token | Save a review record (called by the agent after posting to GitHub) |
+| GET | `/api/reviews/latest` | Token | Get latest review metadata for a PR (called by agent during synchronization) |
+| GET | `/api/reviews` | Session | Paginated reviews for the dashboard (supports `page`, `limit`, `repoId`) |
 | GET | `/api/reviews/:id` | Session | Full review detail |
 
 Session auth uses the `connect.sid` cookie set during OAuth. Token auth uses `Authorization: Bearer <token>` where the token is the `PR_REVIEW_BACKEND_TOKEN` generated when a repo is connected.
