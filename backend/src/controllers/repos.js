@@ -1,4 +1,4 @@
-const { createRepo, getReposByUserId, updateRepoConfig, regenerateRepoToken } = require('../db/queries');
+const { createRepo, getReposByUserId, updateRepoConfig, regenerateRepoToken, getUserById } = require('../db/queries');
 const { randomUUID } = require('crypto');
 const pool = require('../db/client');
 
@@ -37,6 +37,52 @@ const connectRepo = async (req, res) => {
     }
 
     try {
+        const user = await getUserById(req.session.userId);
+        if (!user || !user.github_token) {
+            return res.status(401).json({ error: "Unauthorized" });
+        }
+
+        const githubRes = await fetch(`https://api.github.com/repos/${repo_full_name.trim()}`, {
+            headers: {
+                "Authorization": `Bearer ${user.github_token}`,
+                "Accept": "application/vnd.github+json"
+            }
+        });
+
+        if (githubRes.status === 404) {
+            return res.status(404).json({ error: "Repository not found on GitHub" });
+        }
+
+        if (!githubRes.ok) {
+            return res.status(githubRes.status).json({ error: "Failed to verify repository with GitHub" });
+        }
+
+        //GET /repos/{owner}/{repo} permissions field is unreliable—it's omitted for
+        //public repos where the user has no explicit collaborator record (e.g. they're
+        //the repo owner but the API doesn't return the field). Instead, we use the
+        //dedicated collaborator permission endpoint which always returns a clear level.
+        const permRes = await fetch(
+            `https://api.github.com/repos/${repo_full_name.trim()}/collaborators/${user.github_username}/permission`,
+            {
+                headers: {
+                    "Authorization": `Bearer ${user.github_token}`,
+                    "Accept": "application/vnd.github+json"
+                }
+            }
+        );
+
+        if (!permRes.ok) {
+            return res.status(403).json({ error: "You do not have sufficient permissions (write or admin) for this repository" });
+        }
+
+        const permData = await permRes.json();
+        const level = permData.permission; // "admin" | "write" | "read" | "none"
+
+        //we require write or admin access to connect the repo
+        if (level !== "admin" && level !== "write") {
+            return res.status(403).json({ error: "You do not have sufficient permissions (write or admin) for this repository" });
+        }
+
         const backendToken = randomUUID();
 
         const repo = await createRepo({

@@ -38,7 +38,21 @@ async function findUserByGithubId(githubId) {
         [githubId]
     );
 
-    return rows[0] || null;    //for non existent user, rows[0] is undefined, so we return null
+    return rows[0] || null;
+}
+
+//get user by their internal db ID
+async function getUserById(userId) {
+    if (!userId) {
+        throw new Error('getUserById: userId is required');
+    }
+
+    const { rows } = await pool.query(
+        `SELECT * FROM users WHERE id = $1`,
+        [userId]
+    );
+
+    return rows[0] || null;
 }
 
 
@@ -263,6 +277,7 @@ async function getLatestReviewForPR(repoId, prNumber) {
 module.exports = {
     createUser,
     findUserByGithubId,
+    getUserById,
     createRepo,
     getReposByUserId,
     getRepoByToken,
