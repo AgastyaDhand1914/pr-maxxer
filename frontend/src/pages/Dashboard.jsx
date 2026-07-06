@@ -12,7 +12,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filterRepo, setFilterRepo] = useState("");
-  
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -20,12 +20,12 @@ export default function Dashboard() {
       try {
         setLoading(true);
         setError(null);
-        
+
         const [reviewsData, reposData] = await Promise.all([
           getReviews(page, 20, filterRepo || null),
           getUserRepos()
         ]);
-        
+
         setReviews(reviewsData.reviews || reviewsData || []);
         setTotalPages(reviewsData.totalPages || 1);
         setRepos(reposData.repos || reposData || []);
@@ -36,7 +36,7 @@ export default function Dashboard() {
         setLoading(false);
       }
     }
-    
+
     fetchData();
   }, [page, filterRepo]);
 
@@ -65,7 +65,7 @@ export default function Dashboard() {
           <div style={{ fontSize: 32, fontWeight: "bold" }}>{totalIssuesFound}</div>
         </div>
         <div className="card" style={{ flex: 1, marginBottom: 0 }}>
-          <div className="text-secondary" style={{ fontSize: 14 }}>Repos Connected</div>
+          <div className="text-secondary" style={{ fontSize: 14 }}>Repositories Connected</div>
           <div style={{ fontSize: 32, fontWeight: "bold" }}>{reposConnected}</div>
         </div>
       </div>
@@ -74,19 +74,19 @@ export default function Dashboard() {
       <div className="card" style={{ padding: 0, overflow: "hidden" }}>
         <div className="flex justify-between items-center" style={{ padding: "16px", borderBottom: "1px solid var(--border)", backgroundColor: "var(--bg-primary)" }}>
           <div style={{ fontWeight: "bold" }}>Recent Reviews</div>
-          
+
           {repos.length > 0 && (
-            <select 
+            <select
               value={filterRepo}
               onChange={(e) => {
                 setFilterRepo(e.target.value);
                 setPage(1); // reset to page 1 on filter change
               }}
-              style={{ 
-                padding: "6px 12px", 
-                borderRadius: 6, 
-                border: "1px solid var(--border)", 
-                backgroundColor: "var(--bg-surface)", 
+              style={{
+                padding: "6px 12px",
+                borderRadius: 6,
+                border: "1px solid var(--border)",
+                backgroundColor: "var(--bg-surface)",
                 color: "var(--text-primary)",
                 fontSize: 14
               }}
@@ -98,7 +98,7 @@ export default function Dashboard() {
             </select>
           )}
         </div>
-        
+
         {loading ? (
           <div className="flex items-center" style={{ justifyContent: "center", padding: 64 }}>
             <div className="spinner"></div>
@@ -106,15 +106,15 @@ export default function Dashboard() {
         ) : reviews.length === 0 ? (
           <div style={{ padding: 64, textAlign: "center" }}>
             <p className="text-secondary" style={{ marginBottom: 16 }}>No reviews yet.</p>
-            <Link to="/settings" className="btn btn-primary">Connect a repo to get started</Link>
+            <Link to="/connect" className="btn btn-primary">Connect a repository to get started</Link>
           </div>
         ) : (
           <div>
             {reviews.map(review => (
-              <ReviewRow 
-                key={review.id} 
-                review={review} 
-                onClick={() => navigate(`/reviews/${review.id}`)} 
+              <ReviewRow
+                key={review.id}
+                review={review}
+                onClick={() => navigate(`/reviews/${review.id}`)}
               />
             ))}
             <Pagination page={page} totalPages={totalPages} setPage={setPage} />
