@@ -20,6 +20,11 @@ async function requireToken(req, res, next) {
             return res.status(401).json({ error: "Invalid token" });
         }
 
+        const sentRepoName = req.headers['x-github-repo'] || req.body?.repo_full_name || req.body?.repo;
+        if (!sentRepoName || repo.repo_full_name !== sentRepoName) {
+            return res.status(401).json({ error: "Token repository mismatch" });
+        }
+
         req.repo = repo;
         next();
     }

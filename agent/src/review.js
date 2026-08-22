@@ -25,7 +25,10 @@ const backendToken = process.env.PR_REVIEW_BACKEND_TOKEN;
 async function fetchRepoConfig() {
     try {
         const res = await fetch(`${backendUrl}/api/repos/config`, {
-            headers: { "Authorization": `Bearer ${backendToken}` }
+            headers: { 
+                "Authorization": `Bearer ${backendToken}`,
+                "x-github-repo": process.env.REPO
+            }
         });
 
         if (!res.ok) return {};
@@ -39,7 +42,10 @@ async function fetchRepoConfig() {
 
 async function fetchPreviousReview() {
     const res = await fetch(`${backendUrl}/api/reviews/latest?pr_number=${prNumber}`, {
-        headers: { "Authorization": `Bearer ${backendToken}` }
+        headers: { 
+            "Authorization": `Bearer ${backendToken}`,
+            "x-github-repo": process.env.REPO
+        }
     });
 
     if (res.status === 404) return null;
@@ -56,7 +62,8 @@ async function saveReview(reviewData) {
             method: 'POST',
             headers: {
                 "Content-Type": "application/json",
-                "Authorization": `Bearer ${backendToken}`
+                "Authorization": `Bearer ${backendToken}`,
+                "x-github-repo": process.env.REPO
             },
             body: JSON.stringify(reviewData)
         });
