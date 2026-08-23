@@ -125,8 +125,8 @@ async function postReview(owner, repo, prNumber, commitSha, reviewState, body, c
     catch (err) {
         console.log("postReview error status:", err.status, "reviewState:", reviewState);
 
-        if (err.status === 422 && reviewState === "REQUEST_CHANGES") {
-            console.warn("Cannot request changes on own PR, falling back to COMMENT");
+        if (err.status === 422 && (reviewState === "REQUEST_CHANGES" || reviewState === "APPROVE")) {
+            console.warn(`Cannot ${reviewState} PR with current token permissions, falling back to COMMENT`);
             try {
                 return await attempt("COMMENT", githubComments);
             }
