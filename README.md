@@ -262,4 +262,4 @@ After the workflow and secrets are configured, the agent will be able to post re
 | GET | `/api/reviews` | Session | Paginated reviews for the dashboard (supports `page`, `limit`, `repoId`) |
 | GET | `/api/reviews/:id` | Session | Full review detail |
 
-Session auth uses the `connect.sid` cookie set during OAuth. Token auth uses `Authorization: Bearer <token>` where the token is the `PR_REVIEW_BACKEND_TOKEN` generated when a repo is connected.
+Session auth uses the `connect.sid` cookie set during OAuth. Token auth uses `Authorization: Bearer <token>` along with the `x-github-repo` header for repository identity verification, where the token is the `PR_REVIEW_BACKEND_TOKEN` generated when a repo is connected.
